@@ -346,3 +346,18 @@ h1, .brand {
 .button-secondary {
     background: var(--ink);
 }
+
+/*experience_form & experience_deete modal Style CSS */
+.form-group select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  font: inherit;
+  background-color: #fff;
+}
+.form-group select:focus {
+  outline: 2px solid var(--accent);
+  border-color: var(--accent);
+}
