@@ -32,3 +32,23 @@ Kelas : PBP D
     - Aku menggunakan Gen AI (Google Gemini) dalam mengerjakan tugas ini. Bagian yang dibantu adalah:
         - Google Gemini membantu memberikan referensi struktur untuk model baru 'Project'.
         - Google Gemini membantu menyusun kerangka unit test.
+
+### Tugas 3
+1. Alasan penggunaan 'ModelForm' dan fungsi '{% csrf_token %}'
+   - 'ModelForm' menerapkan prinsip DRY dengan memetakan form langsung ke model, sehingga validasi tipe data dan batasan field ditangani otomatis oleh Django.
+   - Mempermudah penyimpanan ke basis data melalui 'form.save()' serta menyatukan pengaturan widget input dan label secara terpusat.
+   - Tag '{% csrf_token %}' wajib disertakan untuk menghasilkan token keamanan unik guna mencegah serangan Cross-Site Request Forgery (CSRF) pada request POST.
+
+2. Alasan JSON lebih disukai dibanding XML pada web modern
+   - Sintaks JSON jauh lebih ringkas tanpa tag penutup berulang, sehingga ukuran data lebih ringan dan hemat bandwidth.
+   - Didukung secara native oleh JavaScript pada browser modern, sehingga proses parsing data jauh lebih cepat tanpa beban tree XML DOM.
+   - Struktur key-value dan array selaras dengan tipe data bahasa pemrograman modern serta arsitektur RESTful API.
+
+3. Alur pengembalian data JSON dan pentingnya serialisasi
+   - Alur: Klien mengakses URL API, View mengambil QuerySet dari database, QuerySet diubah ke teks JSON via 'serializers.serialize()', Dikembalikan via 'HttpResponse', View antarmuka mendeserialisasi kembali data tersebut untuk dirender ke template HTML.
+   - Serialisasi wajib dilakukan karena objek QuerySet Django adalah objek kompleks Python di memori server yang tidak bisa dikirim langsung melalui protokol HTTP tanpa diubah ke format teks standar.
+
+4. AI Disclosure:
+   - Aku menggunakan Gen AI (Google Gemini) dalam mengerjakan tugas ini. Bagian yang dibantu adalah:
+      - Membantu menyusun dan mendebug fungsi CRUD, serialisasi JSON, dan deserialisasi.
+      - Membantu menyusun kerangka unit test.
