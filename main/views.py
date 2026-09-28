@@ -32,15 +32,21 @@ def get_experience_json(request):
     data = serializers.serialize("json", experiences)
     return HttpResponse(data, content_type="application/json")
 
+def is_editor_user(user):
+    """Memeriksa apakah akun pengguna tergabung ke dalam grup Editor."""
+    return user.is_authenticated and user.groups.filter(name='Editor').exists()
+
 def show_experience(request):
     """Menampilkan daftar pengalaman setelah mengambil JSON dan melakukan deserialisasi."""
     json_response = get_experience_json(request)
     deserialized_data = serializers.deserialize("json", json_response.content.decode("utf-8"))
     experience_list = [item.object for item in deserialized_data]
+    is_editor = request.user.is_authenticated and request.user.groups.filter(name='Editor').exists()
     
     context = {
         "name": "Dave",
         "experience_list": Experience.objects.all(),
+        "is_editor": is_editor,
     }
     return render(request, "experience.html", context)
 
@@ -60,10 +66,17 @@ def create_experience(request):
     }
     return render(request, "experience_form.html", context)
 
+@login_required(login_url="/login/") # 1. Alihkan pengunjung yang belum login ke /login/
 def update_experience(request, experience_id):
-    """Mengubah data pengalaman yang sudah ada berdasarkan ID."""
+    """Mengubah data pengalaman yang sudah ada berdasarkan ID (hanya Superuser & Editor)."""
+    # 2. Cek apakah user adalah superuser atau tergabung dalam grup Editor
+    is_editor = request.user.groups.filter(name='Editor').exists()
+    if not (request.user.is_superuser or is_editor):
+        raise PermissionDenied # Tolak user biasa dengan HTTP 403 Forbidden
+
     experience = get_object_or_404(Experience, pk=experience_id)
     form = ExperienceForm(request.POST or None, instance=experience)
+    
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request, "Pengalaman berhasil diperbarui!")
@@ -77,12 +90,17 @@ def update_experience(request, experience_id):
     }
     return render(request, "experience_form.html", context)
 
+@login_required(login_url="/login/")
 def delete_experience(request, experience_id):
-    """Menghapus data pengalaman berdasarkan ID."""
+    """Hanya superuser yang diizinkan menghapus pengalaman."""
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     experience = get_object_or_404(Experience, pk=experience_id)
     if request.method == "POST":
         experience.delete()
         messages.success(request, "Pengalaman berhasil dihapus!")
+        return redirect("main:show_experience")
     return redirect("main:show_experience")
 
 ### ======== BAGIAN PROJECT ========  
@@ -206,3 +224,4 @@ def toggle_star_experience(request, experience_id):
             experience.starred_by.add(request.user)
             messages.success(request, f"Menyukai {experience.title}!")
     return redirect("main:show_experience")
+
