@@ -29,7 +29,7 @@ def show_main(request):
 def get_experience_json(request):
     """Mengembalikan data seluruh pengalaman dalam format JSON."""
     experiences = Experience.objects.all()
-    data = serializers.serialize("json", experiences)
+    data = serializers.serialize("json", experiences, use_natural_foreign_keys=True)
     return HttpResponse(data, content_type="application/json")
 
 def is_editor_user(user):
