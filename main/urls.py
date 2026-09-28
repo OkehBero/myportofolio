@@ -16,6 +16,9 @@ from main.views import (
     register,
     login_user,
     logout_user,
+    
+    ### ===== Tugas 4 ====== ###
+    toggle_star_experience,
 )
 
 app_name = "main"
@@ -47,4 +50,7 @@ urlpatterns = [
         toggle_star,
         name="toggle_star",
     ),
+    
+    ### ====== Tugas 4 ====== ###
+    path("experience/<uuid:experience_id>/star/", toggle_star_experience, name="toggle_star_experience"),
 ]

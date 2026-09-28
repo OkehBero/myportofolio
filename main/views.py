@@ -193,3 +193,16 @@ def toggle_star(request, project_id):
 
     return redirect("main:show_projects")
 
+### ====== Tugas 4 ====== ###
+@login_required(login_url="/login/")
+def toggle_star_experience(request, experience_id):
+    """Mengaktifkan atau membatalkan star pada objek Experience tertentu."""
+    experience = get_object_or_404(Experience, pk=experience_id)
+    if request.method == "POST":
+        if request.user in experience.starred_by.all():
+            experience.starred_by.remove(request.user)
+            messages.info(request, f"Batal menyukai {experience.title}.")
+        else:
+            experience.starred_by.add(request.user)
+            messages.success(request, f"Menyukai {experience.title}!")
+    return redirect("main:show_experience")
