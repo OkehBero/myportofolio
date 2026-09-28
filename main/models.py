@@ -1,6 +1,9 @@
 import uuid
 from django.db import models
 
+### ====== Tutorial 4 ====== ###
+from django.contrib.auth.models import User
+
 class Experience(models.Model):
     EXPERIENCE_CHOICES = [
         ('internship', 'Internship'),
@@ -32,6 +35,10 @@ class Project(models.Model):
     tech_stack = models.CharField(max_length=255)
     project_url = models.URLField(blank=True, default="")
     project_image_url = models.URLField(blank=True, max_length=500, default="")
+    starred_by = models.ManyToManyField(
+        User, related_name="starred_projects", blank=True
+    )
+
 
     def __str__(self):
         return self.title

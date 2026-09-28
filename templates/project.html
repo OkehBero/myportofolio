@@ -9,18 +9,43 @@
     <section class="experience-section" id="project">
       <div class="container">
         <p class="section-kicker">Karya dan Portofolio</p>
-        <h1>Projects</h1>
-        <div class="experience-grid">
+        
+        <!-- Header Judul & Tombol Tambah Proyek -->
+        <div class="project-header">
+          <h1>Projects</h1>
+          {% if user.is_superuser %}
+            <a href="{% url 'main:create_project' %}" class="button project-add-button">
+              <span aria-hidden="true">+</span> Tambah Proyek
+            </a>
+          {% endif %}
+        </div>
+
+        <div class="experience-grid project-grid">
           {% for project in project_list %}
             <article class="experience-card">
               <span class="experience-category">{{ project.tech_stack }}</span>
               <h2>{{ project.title }}</h2>
               <p class="experience-description">{{ project.description }}</p>
-              {% if project.project_url %}
-                <p class="experience-status">
-                  <a href="{{ project.project_url }}" target="_blank" rel="noopener">Lihat Proyek &rarr;</a>
-                </p>
-              {% endif %}
+              
+              <!-- Kontainer Aksi Kartu -->
+              <div class="project-card-actions">
+                <div class="project-actions">
+                  {% if project.project_url %}
+                    <a href="{{ project.project_url }}" target="_blank" rel="noopener" class="button">
+                      Lihat Proyek
+                    </a>
+                  {% endif %}
+
+                  <!-- 1. Tombol Star (Tampil untuk semua pengunjung) -->
+                  {% include "components/project_star.html" with project=project %}
+
+                  <!-- 2. Tombol Hapus (Hanya tampil untuk Superuser/Admin) -->
+                  {% if user.is_superuser %}
+                    {% include "components/project_delete_modal.html" with project=project %}
+                  {% endif %}
+                </div>
+              </div>
+
             </article>
           {% empty %}
             <p class="empty-state">Belum ada proyek yang ditambahkan.</p>
