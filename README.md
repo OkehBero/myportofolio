@@ -52,3 +52,8 @@ Kelas : PBP D
    - Aku menggunakan Gen AI (Google Gemini) dalam mengerjakan tugas ini. Bagian yang dibantu adalah:
       - Membantu menyusun dan mendebug fungsi CRUD, serialisasi JSON, dan deserialisasi.
       - Membantu menyusun kerangka unit test.
+
+### Tugas 4
+AI Disclosure:
+   - Aku menggunakan Gen AI (Google Gemini) dalam mengerjakan tugas ini. Bagian yang dibantu adalah:
+      - Membantu mendebug fungsi" yang dibuat dan error.
