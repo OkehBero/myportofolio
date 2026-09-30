@@ -8,6 +8,7 @@ from django.core import serializers
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, JsonResponse
 from main.forms import ProjectForm, ExperienceForm
+from django.views.decorators.http import require_POST
 
 ### ====== Tutorial 4 ====== ###
 import datetime
@@ -243,3 +244,21 @@ def toggle_star_experience(request, experience_id):
             messages.success(request, f"Menyukai {experience.title}!")
     return redirect("main:show_experience")
 
+### ====== Tutorial 5 ====== ###
+@require_POST
+def create_project_ajax(request):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Hanya pemilik portofolio yang dapat menambahkan proyek."},
+            status=403,
+        )
+
+    form = ProjectForm(request.POST)
+    if form.is_valid():
+        project = form.save()
+        return JsonResponse(
+            {"message": "Proyek berhasil ditambahkan.", "pk": str(project.id)},
+            status=201,
+        )
+
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)

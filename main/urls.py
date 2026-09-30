@@ -19,6 +19,9 @@ from main.views import (
     
     ### ===== Tugas 4 ====== ###
     toggle_star_experience,
+    
+    ### ====== Tutorial 5 ====== ###
+    create_project_ajax,
 )
 
 app_name = "main"
@@ -53,4 +56,7 @@ urlpatterns = [
     
     ### ====== Tugas 4 ====== ###
     path("experience/<uuid:experience_id>/star/", toggle_star_experience, name="toggle_star_experience"),
+    
+    ### ====== Tutorial 5 ====== ###
+    path("projects/add-ajax/", create_project_ajax, name="create_project_ajax"),
 ]
