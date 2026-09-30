@@ -137,18 +137,16 @@ def get_projects_json(request):
 
 
 def show_projects(request):
-    """Menampilkan daftar proyek setelah mengambil JSON dan melakukan deserialisasi."""
-    json_response = get_projects_json(request)
-    projects = serializers.deserialize("json", json_response.content.decode("utf-8"))
-    projects_list = [project.object for project in projects]
     title_query = request.GET.get("title", "").strip()
     
     context = {
         "name": "Dave",
-        "project_list": projects_list,
         "title_query": title_query,
+        "form": ProjectForm(),
     }
     return render(request, "project.html", context)
+
+
 
 @login_required(login_url="/login/")
 def create_project(request):
