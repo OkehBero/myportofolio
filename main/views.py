@@ -28,29 +28,40 @@ def show_main(request):
     }
     return render(request, "index.html", context)
 
-def get_experience_json(request):
-    """Mengembalikan data seluruh pengalaman dalam format JSON."""
-    experiences = Experience.objects.all()
-    data = serializers.serialize("json", experiences, use_natural_foreign_keys=True)
-    return HttpResponse(data, content_type="application/json")
+### ====== Start Tugas 5 ====== ###
+def get_experiences_json(request):
+    title_query = request.GET.get("title", "").strip()
+    experiences = Experience.objects.prefetch_related('starred_by').all()
+    
+    if title_query:
+        experiences = experiences.filter(title__icontains=title_query)
+        
+    data = []
+    for exp in experiences:
+        starred_users = exp.starred_by.all()
+        is_starred = request.user in starred_users if request.user.is_authenticated else False
+        starred_by_names = ", ".join([u.username for u in starred_users])
+        
+        data.append({
+            "pk": str(exp.id),
+            "fields": {
+                "title": exp.title,
+                "description": exp.description,
+                "category": exp.category,
+                "category_display": exp.get_category_display(),
+                "thumbnail": exp.thumbnail if exp.thumbnail else "",
+                "is_ongoing": exp.is_ongoing,
+                "star_count": starred_users.count(),
+                "is_starred": is_starred,
+                "starred_by_names": starred_by_names,
+            }
+        })
+    return JsonResponse(data, safe=False)
+### ====== End Tugas 5 ======= ###
 
 def is_editor_user(user):
     """Memeriksa apakah akun pengguna tergabung ke dalam grup Editor."""
     return user.is_authenticated and user.groups.filter(name='Editor').exists()
-
-def show_experience(request):
-    """Menampilkan daftar pengalaman setelah mengambil JSON dan melakukan deserialisasi."""
-    json_response = get_experience_json(request)
-    deserialized_data = serializers.deserialize("json", json_response.content.decode("utf-8"))
-    experience_list = [item.object for item in deserialized_data]
-    is_editor = request.user.is_authenticated and request.user.groups.filter(name='Editor').exists()
-    
-    context = {
-        "name": "Dave",
-        "experience_list": Experience.objects.all(),
-        "is_editor": is_editor,
-    }
-    return render(request, "experience.html", context)
 
 def create_experience(request):
     """Membuat data pengalaman baru menggunakan ExperienceForm."""
@@ -263,3 +274,34 @@ def create_project_ajax(request):
         )
 
     return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
+
+### ====== Tugas 5 ====== ###
+@require_POST
+def create_experience_ajax(request):
+    # Otorisasi Tugas 4: Hanya superuser yang berhak menambahkan data
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Hanya pemilik portofolio yang dapat menambahkan pengalaman."},
+            status=403,
+        )
+    
+    form = ExperienceForm(request.POST)
+    if form.is_valid():
+        experience = form.save()
+        return JsonResponse(
+            {"message": "Pengalaman berhasil ditambahkan.", "pk": str(experience.id)},
+            status=201,
+        )
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
+
+def show_experience(request):
+    title_query = request.GET.get("title", "").strip()
+    is_editor = request.user.is_authenticated and request.user.groups.filter(name='Editor').exists()
+
+    context = {
+        "name": "Dave",
+        "title_query": title_query,
+        "form": ExperienceForm(),  # Form kosong untuk modal Popover tambah pengalaman
+        "is_editor": is_editor,
+    }
+    return render(request, "experience.html", context)

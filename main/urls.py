@@ -22,6 +22,10 @@ from main.views import (
     
     ### ====== Tutorial 5 ====== ###
     create_project_ajax,
+    
+    ### ====== Tugas 5 ====== ###
+    get_experiences_json,
+    create_experience_ajax,
 )
 
 app_name = "main"
@@ -59,4 +63,8 @@ urlpatterns = [
     
     ### ====== Tutorial 5 ====== ###
     path("projects/add-ajax/", create_project_ajax, name="create_project_ajax"),
+    
+    ### ====== Tugas 5 ====== ###
+    path("api/experiences/", get_experiences_json, name="get_experiences_json"),
+    path("experience/add-ajax/", create_experience_ajax, name="create_experience_ajax"),
 ]
