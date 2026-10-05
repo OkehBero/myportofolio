@@ -57,3 +57,21 @@ Kelas : PBP D
 AI Disclosure:
    - Aku menggunakan Gen AI (Google Gemini) dalam mengerjakan tugas ini. Bagian yang dibantu adalah:
       - Membantu mendebug fungsi" yang dibuat dan error.
+
+### Tugas 5
+1. Debouncing dan urgensinya pada fitur pencarian berbasis AJAX
+   - Debouncing adalah teknik untuk menunda eksekusi fungsi pencarian hingga pengguna berhenti mengetik selama jeda waktu tertentu (misalnya 300 ms).
+   - Urgensi: Menghindari pengiriman request HTTP berulang untuk setiap karakter, menghemat beban server/database, serta mencegah race condition (respons pencarian lama menimpa hasil pencarian baru).
+
+2. Fungsi dan pengaruh penggunaan keyword 'await' pada 'fetch()'
+   - Fungsi: Menunggu operasi asinkron fetch() selesai menghasilkan objek Response secara konkret sebelum melanjutkan ke baris kode berikutnya.
+   - Tanpa await: Eksekusi kode langsung berjalan saat request masih berstatus pending. Pemanggilan metode lanjutan seperti response.json() akan menghasilkan error atau nilai ndefined, sehingga manipulasi tampilan gagal diproses.
+
+3. Serangan XSS dan kerentanan data AJAX/JavaScript dibanding Django Template
+   - XSS adalah serangan injeksi skrip berbahaya ke halaman web yang dieksekusi di peramban pengguna lain untuk mencuri token/sesi atau memanipulasi aksi.
+   - Kerentanan: Django Template menerapkan auto-escaping bawaan pada {{ variable }}, sedangkan penyusunan elemen via JavaScript menggunakan innerHTML langsung mengeksekusi tag HTML di dalam data mentah.
+   - Mitigasi: Menjalankan escaping manual pada JavaScript (escapeHtml) serta membersihkan input teks di sisi server menggunakan strip_tags() pada ExperienceForm.
+
+4. AI Disclosure:
+   - Alat yang Digunakan: Google Gemini.
+   - Gemini membantu dalam mendebug kode yang error dan membantu dalam pembuatan test case
