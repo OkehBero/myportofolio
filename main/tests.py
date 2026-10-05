@@ -1,7 +1,7 @@
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
-
+from django.contrib.auth.models import User
 from main.models import Experience, Project
 # Create your tests here.
 
@@ -146,3 +146,69 @@ class ExperienceCRUDTest(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Experience.objects.filter(id=self.experience.id).exists())
+        
+class Assignment5AjaxTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.superuser = User.objects.create_superuser(
+            username="admin_user",
+            password="adminpassword123",
+            email="admin@example.com"
+        )
+        self.regular_user = User.objects.create_user(
+            username="regular_user",
+            password="userpassword123"
+        )
+        self.exp = Experience.objects.create(
+            title="Software Lab Assistant",
+            description="Membantu praktikum mahasiswa Fasilkom.",
+            category="part-time"
+        )
+
+    def test_get_experiences_json(self):
+        response = self.client.get(reverse("main:get_experiences_json"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(len(data) >= 1)
+        self.assertEqual(data[0]["fields"]["title"], "Software Lab Assistant")
+        self.assertIn("star_count", data[0]["fields"])
+
+    def test_create_experience_ajax_unauthorized(self):
+        # Pengunjung tanpa login harus menerima 403
+        response = self.client.post(reverse("main:create_experience_ajax"), {
+            "title": "Hacker Job",
+            "description": "Exploit attempt",
+            "category": "full-time"
+        })
+        self.assertEqual(response.status_code, 403)
+
+        # Pengguna biasa login juga harus menerima 403
+        self.client.login(username="regular_user", password="userpassword123")
+        response = self.client.post(reverse("main:create_experience_ajax"), {
+            "title": "Hacker Job",
+            "description": "Exploit attempt",
+            "category": "full-time"
+        })
+        self.assertEqual(response.status_code, 403)
+
+    def test_create_experience_ajax_superuser_success(self):
+        self.client.login(username="admin_user", password="adminpassword123")
+        response = self.client.post(reverse("main:create_experience_ajax"), {
+            "title": "Frontend Developer",
+            "description": "Developing modern UI with Vanilla JS and AJAX.",
+            "category": "internship"
+        })
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(Experience.objects.filter(title="Frontend Developer").exists())
+
+    def test_create_experience_ajax_xss_sanitization(self):
+        self.client.login(username="admin_user", password="adminpassword123")
+        # Mengirim payload script XSS
+        response = self.client.post(reverse("main:create_experience_ajax"), {
+            "title": "<script>alert('XSS')</script>Job Real",
+            "description": "<b>Clean</b> description",
+            "category": "freelance"
+        })
+        self.assertEqual(response.status_code, 201)
+        created_exp = Experience.objects.get(description="Clean description")
+        self.assertEqual(created_exp.title, "Job Real")

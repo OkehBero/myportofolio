@@ -29,7 +29,7 @@ def show_main(request):
     return render(request, "index.html", context)
 
 ### ====== Start Tugas 5 ====== ###
-def get_experiences_json(request):
+def get_experience_json(request):
     title_query = request.GET.get("title", "").strip()
     experiences = Experience.objects.prefetch_related('starred_by').all()
     
@@ -57,6 +57,9 @@ def get_experiences_json(request):
             }
         })
     return JsonResponse(data, safe=False)
+
+# Alias biar nama baru maupun nama lama sama-sama dikenali
+get_experiences_json = get_experience_json
 ### ====== End Tugas 5 ======= ###
 
 def is_editor_user(user):

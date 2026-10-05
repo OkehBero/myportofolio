@@ -53,7 +53,7 @@
 {% endif %}
 
 <script>
-  const BASE_EXPERIENCES_ENDPOINT = "{% url 'main:get_experiences_json' %}";
+  const BASE_EXPERIENCES_ENDPOINT = "{% url 'main:get_experience_json' %}";
   const CREATE_EXPERIENCE_ENDPOINT = "{% url 'main:create_experience_ajax' %}";
   const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
   const IS_EDITOR = "{{ is_editor|yesno:'true,false' }}" === "true";
