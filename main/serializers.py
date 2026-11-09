@@ -1,7 +1,7 @@
 from django.utils.html import strip_tags
 from rest_framework import serializers
 
-from main.models import Project
+from main.models import Project, Experience
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -41,3 +41,27 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     def get_starred_by_names(self, obj):
         return ", ".join(user.username for user in obj.starred_by.all())
+
+class ExperienceSerializer(serializers.ModelSerializer):
+    stars_count = serializers.SerializerMethodField()
+    is_starred_by_me = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Experience
+        fields = ['id', 'title', 'description', 'category', 'thumbnail', 'started_at', 'ended_at', 'stars_count', 'is_starred_by_me']
+        read_only_fields = ['id', 'started_at', 'ended_at', 'stars_count', 'is_starred_by_me']
+
+    def get_stars_count(self, obj):
+        return obj.starred_by.count()
+
+    def get_is_starred_by_me(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.starred_by.filter(id=request.user.id).exists()
+        return False
+
+    def validate_title(self, value):
+        return strip_tags(value)
+
+    def validate_description(self, value):
+        return strip_tags(value)
