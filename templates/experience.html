@@ -52,9 +52,22 @@
 {% include "components/experience_form_modal.html" %}
 {% endif %}
 
+<!-- Modal Tambahan untuk Edit (Bisa dipakai oleh Editor & Superuser) -->
+{% if is_editor or user.is_superuser %}
+<div id="edit-experience-modal" class="project-form-modal" popover="auto" role="dialog" aria-modal="true" aria-labelledby="edit-experience-modal-title">
+  <button type="button" class="project-form-modal_backdrop" popovertarget="edit-experience-modal" popovertargetaction="hide"></button>
+  <div class="project-form-modal_content">
+    <button type="button" class="project-form-modal_close" popovertarget="edit-experience-modal" popovertargetaction="hide">&times;</button>
+    <h2 id="edit-experience-modal-title">Ubah Pengalaman</h2>
+    <!-- Form akan diisi dinamis oleh JS -->
+    <form id="edit-experience-form" class="project-form"></form>
+  </div>
+</div>
+{% endif %}
+
 <script>
-  const BASE_EXPERIENCES_ENDPOINT = "{% url 'main:get_experience_json' %}";
-  const CREATE_EXPERIENCE_ENDPOINT = "{% url 'main:create_experience_ajax' %}";
+  // Mengarahkan Endpoints ke API DRF yang baru
+  const BASE_EXPERIENCES_ENDPOINT = "/api/v1/experiences/";
   const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
   const IS_EDITOR = "{{ is_editor|yesno:'true,false' }}" === "true";
   const CAN_EDIT = IS_SUPERUSER || IS_EDITOR;
@@ -70,6 +83,7 @@
   const searchForm = document.getElementById('experience-search-form');
   const searchInput = document.getElementById('search-input');
   const experienceForm = document.getElementById('experience-form');
+  const editExperienceForm = document.getElementById('edit-experience-form');
 
   function getCookie(name) {
     let cookieValue = null;
@@ -107,51 +121,138 @@
     if (modal) modal.hidePopover();
   }
 
-  function buildExperienceCardElement(item) {
-    const exp = item.fields;
-    const expId = item.pk;
+  function closeEditExperienceModal() {
+    const modal = document.getElementById('edit-experience-modal');
+    if (modal) modal.hidePopover();
+  }
+
+  // Fungsi Star API DRF
+  async function toggleStar(event, expId) {
+    event.preventDefault();
+    try {
+      const response = await fetch(`${BASE_EXPERIENCES_ENDPOINT}${expId}/star/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        fetchExperiences(searchInput.value.trim()); // Reload List
+      } else if (response.status === 403) {
+        showToast('Gagal memberi star', 'Anda harus login untuk memberi star.', 'error');
+      } else {
+        showToast('Gagal memberi star', 'Terjadi kesalahan.', 'error');
+      }
+    } catch (err) {
+      showToast('Error', 'Tidak dapat terhubung ke server.', 'error');
+    }
+  }
+
+  // Fungsi Hapus API DRF
+  async function deleteExperience(expId) {
+    if (!confirm('Yakin ingin menghapus pengalaman ini?')) return;
+    try {
+      const response = await fetch(`${BASE_EXPERIENCES_ENDPOINT}${expId}/`, {
+        method: 'DELETE',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      if (response.ok) {
+        showToast('Berhasil', 'Pengalaman berhasil dihapus.', 'success');
+        fetchExperiences(searchInput.value.trim());
+      } else {
+        const result = await response.json();
+        showToast('Gagal', result.detail || 'Terjadi kesalahan saat menghapus.', 'error');
+      }
+    } catch (err) {
+      showToast('Error', 'Tidak dapat terhubung ke server.', 'error');
+    }
+  }
+
+  // Fungsi Buka Form Edit API DRF
+  function openEditModal(expId, title, description) {
+    const modal = document.getElementById('edit-experience-modal');
+    
+    // Set isi form edit secara dinamis
+    editExperienceForm.innerHTML = `
+      <div class="form-group">
+        <label for="edit-title">Judul Pengalaman</label>
+        <input type="text" id="edit-title" name="title" value="${escapeHtml(title)}" required>
+      </div>
+      <div class="form-group">
+        <label for="edit-description">Deskripsi</label>
+        <textarea id="edit-description" name="description" required>${escapeHtml(description)}</textarea>
+      </div>
+      <input type="hidden" id="edit-id" value="${expId}">
+      <div class="project-form-modal_actions">
+        <button type="button" class="button button-secondary" popovertarget="edit-experience-modal" popovertargetaction="hide">Batal</button>
+        <button type="submit" class="button">Simpan Perubahan</button>
+      </div>
+    `;
+    
+    if (modal) modal.showPopover();
+  }
+
+  // Submit Edit API DRF (PATCH)
+  if (editExperienceForm) {
+    editExperienceForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const expId = document.getElementById('edit-id').value;
+      const formData = new FormData(editExperienceForm);
+      const data = Object.fromEntries(formData.entries());
+
+      try {
+        const response = await fetch(`${BASE_EXPERIENCES_ENDPOINT}${expId}/`, {
+          method: 'PATCH',
+          headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          closeEditExperienceModal();
+          showToast('Berhasil', 'Pengalaman berhasil diubah.', 'success');
+          fetchExperiences(searchInput.value.trim());
+        } else {
+          const errorData = await response.json();
+          showToast('Gagal ubah data', JSON.stringify(errorData), 'error');
+        }
+      } catch (err) {
+        showToast('Error', 'Tidak dapat terhubung ke server.', 'error');
+      }
+    });
+  }
+
+  function buildExperienceCardElement(exp) {
+    // Menyesuaikan dengan JSON dari serializer DRF (bukan format django .fields lagi)
     const article = document.createElement('article');
     article.className = 'experience-card';
 
-    const starUrl = "{% url 'main:toggle_star_experience' '00000000-0000-0000-0000-000000000000' %}"
-      .replace('00000000-0000-0000-0000-000000000000', expId);
-
-    const updateUrl = "{% url 'main:update_experience' '00000000-0000-0000-0000-000000000000' %}"
-      .replace('00000000-0000-0000-0000-000000000000', expId);
-
-    const deleteUrl = "{% url 'main:delete_experience' '00000000-0000-0000-0000-000000000000' %}"
-      .replace('00000000-0000-0000-0000-000000000000', expId);
-
-    const isStarredClass = exp.is_starred ? " is-starred" : "";
-    const starText = exp.is_starred ? "Unstar" : "Star";
-    const starTitle = exp.star_count > 0 
-      ? `Dibintangi oleh ${escapeHtml(exp.starred_by_names)}` 
-      : "Jadilah yang pertama memberi star";
+    const isStarredClass = exp.is_starred_by_me ? " is-starred" : "";
+    const starText = exp.is_starred_by_me ? "Unstar" : "Star";
+    const starTitle = exp.stars_count > 0 ? "Dibintangi beberapa orang" : "Jadilah yang pertama memberi star";
 
     const updateHtml = CAN_EDIT
-      ? `<a href="${updateUrl}" class="button button-secondary">Ubah</a>`
+      ? `<button type="button" class="button button-secondary" onclick="openEditModal('${exp.id}', '${escapeHtml(exp.title)}', '${escapeHtml(exp.description)}')">Ubah</button>`
       : "";
 
     const deleteHtml = IS_SUPERUSER
-      ? `<form method="post" action="${deleteUrl}" style="display:inline;">
-           {% csrf_token %}
-           <button type="submit" class="button button-danger" onclick="return confirm('Yakin ingin menghapus pengalaman ini?');">Hapus</button>
-         </form>`
+      ? `<button type="button" class="button button-danger" onclick="deleteExperience('${exp.id}')">Hapus</button>`
       : "";
 
     article.innerHTML = `
-      <span class="experience-category">${escapeHtml(exp.category_display)}</span>
+      <span class="experience-category">${escapeHtml(exp.category || 'full-time')}</span>
       <h2>${escapeHtml(exp.title)}</h2>
       <p class="experience-description">${escapeHtml(exp.description)}</p>
-      <p class="experience-status">${exp.is_ongoing ? 'Sedang berlangsung' : 'Selesai'}</p>
       <div class="project-card-actions">
         <div class="project-actions">
-          <form method="post" action="${starUrl}" class="star-form">
-            {% csrf_token %}
+          <form onsubmit="toggleStar(event, '${exp.id}')" class="star-form">
             <button type="submit" class="button button-star${isStarredClass}" title="${starTitle}">
               <span aria-hidden="true">&#9733;</span>
               ${starText}
-              <span class="star-count">${exp.star_count}</span>
+              <span class="star-count">${exp.stars_count}</span>
             </button>
           </form>
           ${updateHtml}
@@ -168,8 +269,9 @@
 
     try {
       displayPageSection({ showLoading: true });
+      // DRF memakai parameter query 'q=' untuk filter title sesuai standar di API view kamu
       const url = searchQuery 
-        ? `${BASE_EXPERIENCES_ENDPOINT}?title=${encodeURIComponent(searchQuery)}`
+        ? `${BASE_EXPERIENCES_ENDPOINT}?q=${encodeURIComponent(searchQuery)}`
         : BASE_EXPERIENCES_ENDPOINT;
 
       const response = await fetch(url, {
@@ -213,19 +315,24 @@
     searchExperiences();
   });
 
+  // Submit Tambah Experience API DRF (POST)
   async function addExperience(event) {
     event.preventDefault();
     const submitButton = experienceForm.querySelector('button[type="submit"]');
     submitButton.disabled = true;
 
-    try {
-      const response = await fetch(CREATE_EXPERIENCE_ENDPOINT, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': getCookie('csrftoken') },
-        body: new FormData(experienceForm),
-      });
+    const formData = new FormData(experienceForm);
+    const data = Object.fromEntries(formData.entries());
 
-      const result = await response.json().catch(() => ({}));
+    try {
+      const response = await fetch(BASE_EXPERIENCES_ENDPOINT, {
+        method: 'POST',
+        headers: { 
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify(data),
+      });
 
       if (response.ok) {
         experienceForm.reset();
@@ -233,20 +340,22 @@
         showToast('Berhasil', 'Pengalaman baru berhasil ditambahkan!', 'success');
         fetchExperiences(searchInput.value.trim());
       } else {
-        const errorMessages = result.errors
-          ? Object.values(result.errors).flat().map(e => e.message)
-          : [result.message || `Terjadi kesalahan (status ${response.status})`];
-        showToast('Gagal menambahkan pengalaman', errorMessages.join(' '), 'error');
+        const errorData = await response.json();
+        // DRF mengembalikan dict dengan key field, misalnya {"title": ["Error message"]}
+        const errorMessages = Object.values(errorData).flat().join(" ");
+        showToast('Gagal menambahkan pengalaman', errorMessages, 'error');
       }
     } catch (err) {
       console.error(err);
-      showToast('Gagal menambahkan pengalaman', 'Tidak dapat terhubung ke server.', 'error');
+      showToast('Gagal', 'Tidak dapat terhubung ke server.', 'error');
     } finally {
       submitButton.disabled = false;
     }
   }
 
   if (experienceForm) {
+    // Pastikan action HTML formnya ditimpa supaya tidak redirect ke view django lama
+    experienceForm.removeAttribute('action');
     experienceForm.addEventListener('submit', addExperience);
   }
 
